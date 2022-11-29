@@ -16,7 +16,7 @@ export default class level2 extends Laya.Script {
     public turretPrefab:Laya.Prefab;
 
     /** @prop {name:posList, tips:"", type:Array<number>}*/
-    public posList: Array<Array<number>> = [[100, 0], [100, 500], [300, 500], [300, 900]];
+    public posList: Array<Array<number>> = [];
 
     private timeLine:TimeLine = new TimeLine();
     public enemy:Laya.Sprite = null;
@@ -34,12 +34,12 @@ export default class level2 extends Laya.Script {
         Laya.stage.scaleMode = Stage.SCALE_SHOWALL;
         Laya.stage.bgColor = "#ff00ff";
 
-        
+        /* 加载预制体示例
         Laya.loader.create("prefab/enemy.json", Laya.Handler.create(this, function() {
             console.log(0);
             this.enemyPrefab = Laya.loader.getRes("prefab/enemy.json");
         }), null, Laya.Loader.PREFAB);
-        /* 加载预制体示例
+        
         Laya.loader.create("prefab/turret.json", Laya.Handler.create(this, function() {
             console.log(1);
             this.turretPrefab = Laya.loader.getRes("prefab/turret.json") as Laya.Prefab;
@@ -47,14 +47,13 @@ export default class level2 extends Laya.Script {
         */ 
     }
     
-    onEnable(): void {
-        console.log(this.owner.numChildren);
+    async onEnable(): Promise<void> {
         const path:Laya.Panel = this.owner.getChildByName('pathPanel') as Laya.Panel;
-        const pathList:Array<Array<number>> = [];
+       
         for (let i = 0; i < path.numChildren; i++){
-            pathList.push([(path.getChildAt(i) as Sprite).x, (path.getChildAt(i) as Sprite).y]);
+            this.posList.push([(path.getChildAt(i) as Sprite).x, (path.getChildAt(i) as Sprite).y]);
         }
-
+        setTimeout(this.startEnemyMove.bind(this), 2000);
         // this.createCharacter('../laya/assets/img/icon.png', [Browser.clientWidth / 4, 20]);
         // const enemy = new Enemy(100, 100, 300, 300);
         // Laya.stage.addChild(enemy);
@@ -88,19 +87,21 @@ export default class level2 extends Laya.Script {
                 
         //     // for(let i = 0; i < 4; i++){}
         // }, 100)
-        const enemy:Laya.Sprite = this.creteEnemy(100, 100, '../laya/assets/img/icon.png');
-        const enemyjs = enemy.getComponent(Laya.Script);
-        enemyjs.setPath([[10, 0], [100, 0], [100, 100], [400, 1000]]);
-        enemyjs.setState('moving');
+        // const enemy:Laya.Sprite = await this.creteEnemy(100, 100, '../laya/assets/img/icon.png') as any;
+        // const enemyjs = enemy.getComponent(Laya.Script);
+        // enemyjs.setPath([[450, 100]]);
+        // enemyjs.setSpeed(400);
+        // enemyjs.setState('moving');
 
-        const enemy1:Laya.Sprite = this.creteEnemy(30, 30, '../laya/assets/img/22.png');
-        const enemyjs1 = enemy1.getComponent(Laya.Script);
-        enemyjs1.setPath([[100, 50], [100, 0], [300, 100], [200, 500]]);
-        enemyjs1.setState('moving');
+        // const enemy1:Laya.Sprite = await this.creteEnemy(50, 50, '../laya/assets/img/22.png') as any;
+        // const enemyjs1 = enemy1.getComponent(Laya.Script);
+        // enemyjs1.setPath(pathList);
+        // enemyjs1.setSpeed(100);
+        // enemyjs1.setState('moving');
 
-        const enemy2:Laya.Sprite = this.creteEnemy(50, 50, '../laya/assets/img/23.png');
-        const enemyjs2 = enemy2.getComponent(Laya.Script);
-        enemyjs2.setPath([[100, 0], [300, 200]]);
+        // const enemy2:Laya.Sprite = await this.creteEnemy(50, 50, '../laya/assets/img/23.png') as any;
+        // const enemyjs2 = enemy2.getComponent(Laya.Script);
+        // enemyjs2.setPath([[100, 0], [300, 200]]);
         // enemyjs2.setState('moving');
 
         // const enemyObj1:any = this.creteEnemy(30, 30, '../laya/assets/img/22.png');
@@ -125,6 +126,15 @@ export default class level2 extends Laya.Script {
         // this.enemy.y += SPEED * Laya.timer.delta / 1000;
         
     }
+    async startEnemyMove(): Promise<void> {
+        const enemy1:Laya.Sprite = await this.creteEnemy(50, 50, '../laya/assets/img/22.png') as any;
+        const enemyjs1 = enemy1.getComponent(Laya.Script);
+        enemyjs1.setPath(this.posList);
+        enemyjs1.setSpeed(100);
+        enemyjs1.setState('moving');
+        this.owner.addChild(enemy1);
+    }
+    /**  创建敌人预制体demo 
     creteEnemy(width, height, bgImg): Laya.Sprite {
         const enemy:Laya.Sprite = Laya.Pool.getItemByCreateFun("enemy", this.enemyPrefab.create, this.enemyPrefab);
 
@@ -137,11 +147,30 @@ export default class level2 extends Laya.Script {
         // const enemyjs = enemy.getComponent(Laya.Script);
         return enemy;
     }
+    **/
+    async creteEnemy(width, height, bgImg): Promise<Laya.Sprite> {
+        const prefabFactory = new PrefabFactory();
+        const enemy:Laya.Sprite = await prefabFactory.initPrefab('enemy') as any;
+        
+        // enemy.width = width;
+        // enemy.height = height;
+        enemy.texture = bgImg;
+        // const bg:Laya.Image = turret.getChildByName('background') as Laya.Image;
+        // bg.height = width;
+        // bg.width = height;
+        // bg.skin = bgImg;
+        this.owner.addChild(enemy);
+        const enemyjs = enemy.getComponent(Laya.Script);
+        console.log(enemyjs);
+        enemyjs.setWH(width, height);
+        return enemy;
+    }
     async creteTurret(x, y, width, height, bgImg): Promise<Laya.Sprite> {
         const prefabFactory = new PrefabFactory();
-        
         const turret:Laya.Sprite = await prefabFactory.initPrefab('turret') as any;
-
+        turret.width = width;
+        turret.height = height;
+        turret.texture = bgImg;
         // console.log(this.enemyPrefab);
         // console.log(this.turretPrefab);
         // console.log(this.turretPrefab);
@@ -151,10 +180,10 @@ export default class level2 extends Laya.Script {
         // console.log(turret);
         // console.log(turret1);
         
-        const bg:Laya.Image = turret.getChildByName('background') as Laya.Image;
-        bg.height = height;
-        bg.width = width;
-        bg.skin = bgImg;
+        // const bg:Laya.Image = turret.getChildByName('background') as Laya.Image;
+        // bg.height = height;
+        // bg.width = width;
+        // bg.skin = bgImg;
         this.owner.addChild(turret);
         const turretjs = turret.getComponent(Laya.Script);
         turretjs.setPosition(x, y);

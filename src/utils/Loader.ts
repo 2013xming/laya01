@@ -4,19 +4,16 @@ export default class Loader{
     constructor() {
     }
 
-    async loadRes(resName:string):Promise<any> {
+    async loadRes(resName:string, type:string = Laya.Loader.PREFAB):Promise<any> {
         let res = null;
         try {
             res = await (new Promise((resolve, reject) => {
                     Laya.loader.create(resName, Laya.Handler.create(this, function() {
                         //  this.enemyPrefab = Laya.loader.getRes("prefab/enemy.json");
                         const res = Laya.loader.getRes(resName);
-                        console.log("Laya.loader.getRes(resName):", resName);
-                        console.log(res);
-                        const enemy:Laya.Sprite = Laya.Pool.getItemByCreateFun("enemy", res.create, res);
-                        console.log(enemy);
+                        // console.log("Laya.loader.getRes(resName):", resName);
                         resolve(res);
-                    }), null, Laya.Loader.PREFAB);
+                    }), null, type);
                     setTimeout(() => reject(res), 60 * 60 * 1000);
                 }));
         }catch(e) {

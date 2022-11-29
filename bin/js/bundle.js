@@ -188,22 +188,22 @@
         return (mod && mod.__esModule) ? mod : { default: mod };
     }
 
+    const EventType = {
+        START_ATTACK: 'START_ATTACK',
+    };
+
     class Loader {
         constructor() {
         }
-        loadRes(resName) {
+        loadRes(resName, type = Laya.Loader.PREFAB) {
             return __awaiter(this, void 0, void 0, function* () {
                 let res = null;
                 try {
                     res = yield (new Promise((resolve, reject) => {
                         Laya.loader.create(resName, Laya.Handler.create(this, function () {
                             const res = Laya.loader.getRes(resName);
-                            console.log("Laya.loader.getRes(resName):", resName);
-                            console.log(res);
-                            const enemy = Laya.Pool.getItemByCreateFun("enemy", res.create, res);
-                            console.log(enemy);
                             resolve(res);
-                        }), null, Laya.Loader.PREFAB);
+                        }), null, type);
                         setTimeout(() => reject(res), 60 * 60 * 1000);
                     }));
                 }
@@ -229,76 +229,190 @@
                 const loader = new Loader();
                 const path = `prefab/${prefabName}.json`;
                 const prefab = yield loader.loadRes(path);
-                console.log(prefab);
-                console.log(prefabName);
                 const prefabSprite = Laya.Pool.getItemByCreateFun(prefabName, prefab.create, prefab);
                 return prefabSprite;
             });
         }
     }
 
-    var Sprite = Laya.Sprite;
+    function posEqual(pos, target, range) {
+        return Math.pow(range, 2) >= Math.pow((target[1] - pos[1]), 2) + Math.pow((target[0] - pos[0]), 2);
+    }
+    function getPosList(owner) {
+        const path = owner.getChildByName('pathPanel');
+        const posList = [];
+        for (let i = 0; i < path.numChildren; i++) {
+            posList.push([path.getChildAt(i).x, path.getChildAt(i).y]);
+        }
+        return posList;
+    }
+    function creteEnemy(owner, enemyConfig) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const prefabFactory = new PrefabFactory();
+            const enemy = yield prefabFactory.initPrefab('enemy');
+            enemy.texture = enemyConfig.bgImg;
+            owner.addChild(enemy);
+            const enemyjs = enemy.getComponent(Laya.Script);
+            enemyjs.setWH(enemyConfig.width, enemyConfig.height);
+            return enemy;
+        });
+    }
+    function creteTurret(owner, turretConfig) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const prefabFactory = new PrefabFactory();
+            const turret = yield prefabFactory.initPrefab('turret');
+            turret.texture = turretConfig.bgImg;
+            owner.addChild(turret);
+            const turretjs = turret.getComponent(Laya.Script);
+            turretjs.setPosition(turretConfig.x, turretConfig.y);
+            turretjs.setWH(turretConfig.width, turretConfig.height);
+            turretjs.setShortRange(turretConfig.range);
+            return turret;
+        });
+    }
+    function creteBullet(owner, bulletConfig) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const prefabFactory = new PrefabFactory();
+            const bullet = yield prefabFactory.initPrefab('bullet');
+            bullet.texture = bulletConfig.bgImg;
+            owner.addChild(bullet);
+            const bulletjs = bullet.getComponent(Laya.Script);
+            bulletjs.setPosition(bulletConfig.x, bulletConfig.y);
+            bulletjs.setWH(bulletConfig.width, bulletConfig.height);
+            return bullet;
+        });
+    }
+
     var Stage = Laya.Stage;
     var Browser = Laya.Browser;
     var WebGL = Laya.WebGL;
+    class level1 extends Laya.Script {
+        constructor() {
+            super();
+            this.posList = [];
+            this.enemy = null;
+            Laya.init(Browser.clientWidth, Browser.clientHeight, WebGL);
+            Laya.stage.scaleMode = Stage.SCALE_FULL;
+            Laya.stage.bgColor = "#ff00ff";
+        }
+        onAwake() {
+            this.posList = getPosList(this.owner);
+            let timer = null;
+            setTimeout(() => {
+                this.startEnemyMove();
+                timer = setInterval(this.startEnemyMove.bind(this), 1500);
+            }, 2000);
+            setTimeout(() => {
+                clearInterval(timer);
+            }, 10 * 1000);
+            Laya.stage.on(EventType.START_ATTACK, this, (data) => {
+                this.startBulletMove(data.self, data.other);
+            });
+        }
+        onEnable() {
+        }
+        onDisable() {
+        }
+        onClick(event) {
+            creteTurret(this.owner, {
+                x: event.stageX,
+                y: event.stageY,
+                width: 140,
+                height: 140,
+                bgImg: '../laya/assets/img/icon.png',
+                range: 250
+            });
+        }
+        startEnemyMove() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const enemy1 = yield creteEnemy(this.owner, {
+                    width: 100,
+                    height: 100,
+                    bgImg: '../laya/assets/img/22.png',
+                });
+                const enemyjs1 = enemy1.getComponent(Laya.Script);
+                enemyjs1.setPath(this.posList);
+                enemyjs1.setSpeed(100);
+                enemyjs1.setState('moving');
+            });
+        }
+        startBulletMove(turret, enemy) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const bullet = yield creteBullet(this.owner, {
+                    x: turret.owner.x,
+                    y: turret.owner.y,
+                    width: 40,
+                    height: 12,
+                    bgImg: '../laya/assets/img/banban.png',
+                });
+                const bulletjs = bullet.getComponent(Laya.Script);
+                bulletjs.setSpeed(1000);
+                bulletjs.setTargetPos(enemy.owner.x, enemy.owner.y);
+                bulletjs.setState('moving');
+            });
+        }
+    }
+
+    var Sprite = Laya.Sprite;
+    var Stage$1 = Laya.Stage;
+    var Browser$1 = Laya.Browser;
+    var WebGL$1 = Laya.WebGL;
     var TimeLine = Laya.TimeLine;
     const SPEED = 50;
     class level2 extends Laya.Script {
         constructor() {
             super();
-            this.posList = [[100, 0], [100, 500], [300, 500], [300, 900]];
+            this.posList = [];
             this.timeLine = new TimeLine();
             this.enemy = null;
-            Laya.init(Browser.clientWidth, Browser.clientHeight, WebGL);
-            Laya.stage.alignV = Stage.ALIGN_MIDDLE;
-            Laya.stage.alignH = Stage.ALIGN_CENTER;
-            Laya.stage.scaleMode = Stage.SCALE_SHOWALL;
+            Laya.init(Browser$1.clientWidth, Browser$1.clientHeight, WebGL$1);
+            Laya.stage.alignV = Stage$1.ALIGN_MIDDLE;
+            Laya.stage.alignH = Stage$1.ALIGN_CENTER;
+            Laya.stage.scaleMode = Stage$1.SCALE_SHOWALL;
             Laya.stage.bgColor = "#ff00ff";
-            Laya.loader.create("prefab/enemy.json", Laya.Handler.create(this, function () {
-                console.log(0);
-                this.enemyPrefab = Laya.loader.getRes("prefab/enemy.json");
-            }), null, Laya.Loader.PREFAB);
         }
         onEnable() {
-            console.log(this.owner.numChildren);
-            const path = this.owner.getChildByName('pathPanel');
-            const pathList = [];
-            for (let i = 0; i < path.numChildren; i++) {
-                pathList.push([path.getChildAt(i).x, path.getChildAt(i).y]);
-            }
-            const enemy = this.creteEnemy(100, 100, '../laya/assets/img/icon.png');
-            const enemyjs = enemy.getComponent(Laya.Script);
-            enemyjs.setPath([[10, 0], [100, 0], [100, 100], [400, 1000]]);
-            enemyjs.setState('moving');
-            const enemy1 = this.creteEnemy(30, 30, '../laya/assets/img/22.png');
-            const enemyjs1 = enemy1.getComponent(Laya.Script);
-            enemyjs1.setPath([[100, 50], [100, 0], [300, 100], [200, 500]]);
-            enemyjs1.setState('moving');
-            const enemy2 = this.creteEnemy(50, 50, '../laya/assets/img/23.png');
-            const enemyjs2 = enemy2.getComponent(Laya.Script);
-            enemyjs2.setPath([[100, 0], [300, 200]]);
+            return __awaiter(this, void 0, void 0, function* () {
+                const path = this.owner.getChildByName('pathPanel');
+                for (let i = 0; i < path.numChildren; i++) {
+                    this.posList.push([path.getChildAt(i).x, path.getChildAt(i).y]);
+                }
+                setTimeout(this.startEnemyMove.bind(this), 2000);
+            });
         }
         onDisable() {
         }
         onUpdate() {
         }
+        startEnemyMove() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const enemy1 = yield this.creteEnemy(50, 50, '../laya/assets/img/22.png');
+                const enemyjs1 = enemy1.getComponent(Laya.Script);
+                enemyjs1.setPath(this.posList);
+                enemyjs1.setSpeed(100);
+                enemyjs1.setState('moving');
+                this.owner.addChild(enemy1);
+            });
+        }
         creteEnemy(width, height, bgImg) {
-            const enemy = Laya.Pool.getItemByCreateFun("enemy", this.enemyPrefab.create, this.enemyPrefab);
-            const bg = enemy.getChildByName('background');
-            bg.height = width;
-            bg.width = height;
-            bg.skin = bgImg;
-            this.owner.addChild(enemy);
-            return enemy;
+            return __awaiter(this, void 0, void 0, function* () {
+                const prefabFactory = new PrefabFactory();
+                const enemy = yield prefabFactory.initPrefab('enemy');
+                enemy.texture = bgImg;
+                this.owner.addChild(enemy);
+                const enemyjs = enemy.getComponent(Laya.Script);
+                console.log(enemyjs);
+                enemyjs.setWH(width, height);
+                return enemy;
+            });
         }
         creteTurret(x, y, width, height, bgImg) {
             return __awaiter(this, void 0, void 0, function* () {
                 const prefabFactory = new PrefabFactory();
                 const turret = yield prefabFactory.initPrefab('turret');
-                const bg = turret.getChildByName('background');
-                bg.height = height;
-                bg.width = width;
-                bg.skin = bgImg;
+                turret.width = width;
+                turret.height = height;
+                turret.texture = bgImg;
                 this.owner.addChild(turret);
                 const turretjs = turret.getComponent(Laya.Script);
                 turretjs.setPosition(x, y);
@@ -371,36 +485,47 @@
         }
     }
 
-    function posEqual(pos, target, range) {
-        return Math.pow(range, 2) > Math.pow((target[1] - pos[1]), 2) + Math.pow((target[0] - pos[0]), 2);
-    }
-
-    class Enemy extends Laya.Script {
+    class bullet extends Laya.Script {
         constructor() {
             super();
             this.spriteSelf = null;
+            this.circleCollider = null;
+            this.rigidBody = null;
             this.speed = 100;
+            this.radian = 0;
             this.state = "ready";
-            this.pathPos = [];
-            this.pathIndex = 0;
-            this.hp = 0;
         }
         onAwake() {
             this.spriteSelf = this.owner;
+            this.circleCollider = this.spriteSelf.getComponent(Laya.CircleCollider);
+            this.circleCollider.radius = 5;
+            this.circleCollider.enabled = true;
+            this.setCircleColliderPos();
+            this.rigidBody = this.spriteSelf.getComponent(Laya.RigidBody);
             this.spriteSelf.x = 0;
             this.spriteSelf.y = 0;
+            this.spriteSelf.width = 15;
+            this.spriteSelf.height = 5;
+            this.spriteSelf.pivot(this.spriteSelf.width / 2, this.spriteSelf.height / 2);
         }
         onEnable() {
-            this.state = 'moving';
         }
         onDisable() {
         }
-        onTriggerEnter(colliderB, colliderA, contact) {
-            this.spriteSelf.scale(1.5, 1.5);
+        onUpdate() {
+            if (this.state == 'moving') {
+                const len = this.speed * Laya.timer.delta / 1000;
+                const x = Math.floor((len * Math.cos(this.radian)) * 100) / 100;
+                const y = Math.floor((len * Math.sin(this.radian)) * 100) / 100;
+                this.rigidBody.setVelocity({ x: x, y: y });
+            }
         }
-        onTriggerExit(other, self, contact) {
-            console.log('onTriggerExit.');
-            this.spriteSelf.scale(0.5, 0.5);
+        onTriggerEnter(other, self, contact) {
+            console.log('onTriggerEnter.');
+        }
+        setCircleColliderPos() {
+            this.circleCollider.x = this.spriteSelf.width / 2 - this.circleCollider.radius;
+            this.circleCollider.y = this.spriteSelf.height / 2 - this.circleCollider.radius;
         }
         setState(state) {
             this.state = state;
@@ -408,21 +533,100 @@
         setWH(width, height) {
             this.spriteSelf.width = width;
             this.spriteSelf.height = height;
+            this.spriteSelf.pivot(width / 2, height / 2);
+            this.setCircleColliderPos();
+            this.setCircleRadius(Math.max(width, height) / 2);
         }
         setPosition(x, y) {
-            this.spriteSelf = this.owner;
-            this.spriteSelf.x = x;
-            this.spriteSelf.y = y;
+            this.spriteSelf.x = x - this.spriteSelf.width / 2;
+            this.spriteSelf.y = y - this.spriteSelf.height / 2;
+            this.setCircleColliderPos();
+        }
+        setCircleRadius(radius) {
+            this.circleCollider.radius = radius;
+            this.setCircleColliderPos();
         }
         setSpeed(speed) {
             this.speed = speed;
         }
-        setBg(bgpath) {
+        setTargetPos(x, y) {
+            const deltaY = y - this.spriteSelf.y;
+            const deltaX = x - this.spriteSelf.x;
+            this.radian = Math.atan2(deltaY, deltaX);
+        }
+    }
+
+    class Enemy extends Laya.Script {
+        constructor() {
+            super();
+            this.spriteSelf = null;
+            this.circleCollider = null;
+            this.rigidBody = null;
+            this.speed = 100;
+            this.state = "ready";
+            this.pathPos = [];
+            this.pathIndex = 0;
+            this.hp = 1;
+            this.testTimer = null;
+            this.hpProgressBar = null;
+        }
+        onAwake() {
+            return __awaiter(this, void 0, void 0, function* () {
+                this.spriteSelf = this.owner;
+                this.circleCollider = this.spriteSelf.getComponent(Laya.CircleCollider);
+                this.circleCollider.radius = 50;
+                this.circleCollider.enabled = true;
+                this.setCircleColliderPos();
+                this.rigidBody = this.spriteSelf.getComponent(Laya.RigidBody);
+                this.spriteSelf.x = 0;
+                this.spriteSelf.y = 0;
+                this.spriteSelf.pivot(this.spriteSelf.width / 2, this.spriteSelf.height / 2);
+                Laya.loader.load(["img/hpBar.png", "img/hpBar$bar.png"], Laya.Handler.create(this, function () {
+                    this.hpProgressBar = new Laya.ProgressBar("img/hpBar.png");
+                    this.owner.addChild(this.hpProgressBar);
+                    this.hpProgressBar.width = this.spriteSelf.width;
+                    this.hpProgressBar.height = 10;
+                    this.hpProgressBar.value = this.hp;
+                    this.hpProgressBar.top = -10;
+                    this.hpProgressBar.sizeGrid = "5,5,5,5";
+                    console.log(this.hpProgressBar);
+                }));
+            });
+        }
+        onEnable() {
+        }
+        onDisable() {
+        }
+        onTriggerEnter(other, self, contact) {
+            console.log('enemy onTriggerEnter.');
+        }
+        onTriggerExit(other, self, contact) {
+            console.log('Enemy onTriggerExit.');
+        }
+        setState(state) {
+            this.state = state;
+        }
+        setWH(width, height) {
+            this.spriteSelf.width = width;
+            this.spriteSelf.height = height;
+            this.setCircleColliderPos();
+            this.setCircleRadius(Math.max(width, height) / 2);
+            this.spriteSelf.pivot(width / 2, height / 2);
+        }
+        setCircleColliderPos() {
+            this.circleCollider.x = this.spriteSelf.width / 2 - this.circleCollider.radius;
+            this.circleCollider.y = this.spriteSelf.height / 2 - this.circleCollider.radius;
+        }
+        setSpeed(speed) {
+            this.speed = speed;
+        }
+        setCircleRadius(radius) {
+            this.circleCollider.radius = radius;
         }
         setPath(pathPos) {
             this.pathPos = pathPos;
-            this.spriteSelf.x = pathPos[0][0];
-            this.spriteSelf.y = pathPos[0][1];
+            this.spriteSelf.x = pathPos[0][0] + this.spriteSelf.width / 2;
+            this.spriteSelf.y = pathPos[0][1] + this.spriteSelf.height / 2;
         }
         stop() {
             this.state = 'stopped';
@@ -432,29 +636,77 @@
                 if (this.pathPos.length > 1 && this.pathIndex < this.pathPos.length - 1) {
                     const deltaY = this.pathPos[this.pathIndex + 1][1] - this.pathPos[this.pathIndex][1];
                     const deltaX = this.pathPos[this.pathIndex + 1][0] - this.pathPos[this.pathIndex][0];
+                    const len = this.speed * Laya.timer.delta / 1000;
                     const radian = Math.atan2(deltaY, deltaX);
-                    if (posEqual([this.spriteSelf.x, this.spriteSelf.y], this.pathPos[this.pathIndex + 1], this.speed * Laya.timer.delta / 1000)) {
+                    this.rigidBody.setVelocity({ x: Math.floor((len * Math.cos(radian)) * 100) / 100, y: Math.floor((len * Math.sin(radian)) * 100) / 100 });
+                    if (posEqual([this.spriteSelf.x - this.circleCollider.radius, this.spriteSelf.y - this.circleCollider.radius], this.pathPos[this.pathIndex + 1], len)) {
+                        this.spriteSelf.x = this.pathPos[this.pathIndex + 1][0] + this.circleCollider.radius;
+                        this.spriteSelf.y = this.pathPos[this.pathIndex + 1][1] + this.circleCollider.radius;
+                        this.pathIndex++;
+                        this.rigidBody.setVelocity({ x: 0, y: 0 });
+                        console.log('posEqual');
+                        return;
+                    }
+                }
+            }
+        }
+        onUpdate_bak() {
+            if (this.state == 'moving') {
+                if (this.pathPos.length > 1 && this.pathIndex < this.pathPos.length - 1) {
+                    const deltaY = this.pathPos[this.pathIndex + 1][1] - this.pathPos[this.pathIndex][1];
+                    const deltaX = this.pathPos[this.pathIndex + 1][0] - this.pathPos[this.pathIndex][0];
+                    const len = this.speed * Laya.timer.delta / 1000;
+                    const radian = Math.atan2(deltaY, deltaX);
+                    this.spriteSelf.x += Math.floor((len * Math.cos(radian)) * 100) / 100;
+                    this.spriteSelf.y += Math.floor((len * Math.sin(radian)) * 100) / 100;
+                    if (posEqual([this.spriteSelf.x, this.spriteSelf.y], this.pathPos[this.pathIndex + 1], len)) {
+                        this.spriteSelf.x = this.pathPos[this.pathIndex + 1][0];
+                        this.spriteSelf.y = this.pathPos[this.pathIndex + 1][1];
                         this.pathIndex++;
                         console.log('posEqual');
                         return;
                     }
-                    this.spriteSelf.x += (this.speed * Math.cos(radian) * Laya.timer.delta / 1000);
-                    this.spriteSelf.y += (this.speed * Math.sin(radian) * Laya.timer.delta / 1000);
                 }
             }
         }
     }
 
+    const turretType = {
+        t1: {
+            attackType: 'single'
+        },
+        t2: {
+            attackType: 'group'
+        },
+    };
     class turret extends Laya.Script {
         constructor() {
             super();
-            this.shotRange = 0;
+            this.shotRange = 1;
             this.aggressivity = 0;
             this.spriteSelf = null;
+            this.circleCollider = null;
+            this.shootIntervalTimerList = [];
+            this.attackType = 'single';
         }
         onAwake() {
             this.spriteSelf = this.owner;
-            this.owner.on(Laya.Event.MOUSE_UP, this, this.onMouseClick);
+            this.spriteSelf.width = 50;
+            this.spriteSelf.height = 50;
+            this.circleCollider = this.spriteSelf.getComponent(Laya.CircleCollider);
+            this.circleCollider.radius = 100;
+            this.circleCollider.enabled = true;
+            this.spriteSelf.pivot(this.spriteSelf.width / 2, this.spriteSelf.height / 2);
+            this.owner.on(Laya.Event.CLICK, this, this.onMouseClick);
+            setInterval(() => {
+                this.spriteSelf.scale(1.2, 1.2);
+                setTimeout(() => {
+                    this.spriteSelf.scale(0.8, 0.8);
+                }, 300);
+                setTimeout(() => {
+                    this.spriteSelf.scale(1, 1);
+                }, 600);
+            }, 900);
         }
         onEnable() {
         }
@@ -462,21 +714,76 @@
         }
         onUpdate() {
         }
-        onMouseClick() {
+        onMouseClick(event) {
             console.log("mouse click");
+            event.stopPropagation();
         }
-        createCircleCollider(radius = 50) {
-            let rigidbody = this.owner.addComponent(Laya.CircleCollider);
-            rigidbody.radius = radius;
+        onTriggerEnter(other, self, contact) {
+            console.log('turret 射程范围内');
+            if (this.attackType === 'group') {
+                Laya.stage.event(EventType.START_ATTACK, { other, self });
+                const intervalTimer = setInterval(() => {
+                    Laya.stage.event(EventType.START_ATTACK, { other, self });
+                }, 500);
+                this.shootIntervalTimerList.push({ id: other.id, timer: intervalTimer, other, self });
+            }
+            if (this.attackType === 'single') {
+                if (this.shootIntervalTimerList.length === 0) {
+                    Laya.stage.event(EventType.START_ATTACK, { other, self });
+                    const intervalTimer = setInterval(() => {
+                        Laya.stage.event(EventType.START_ATTACK, { other, self });
+                    }, 500);
+                    this.shootIntervalTimerList.push({ id: other.id, timer: intervalTimer, other, self });
+                }
+                else {
+                    this.shootIntervalTimerList.push({ id: other.id, timer: null, other, self });
+                }
+            }
         }
-        onTriggerEnter(colliderB, colliderA, contact) {
-            console.log('射程范围内');
+        onTriggerStay() {
+            console.log('stay.');
+        }
+        onTriggerExit(other, self, contact) {
+            console.log('turret  onTriggerExit.');
+            const index = this.shootIntervalTimerList.findIndex((item) => {
+                return item.id === other.id;
+            });
+            if (index > -1) {
+                let timer = this.shootIntervalTimerList.splice(index, 1);
+                clearInterval(timer[0].timer);
+                timer[0].timer = null;
+                if (this.attackType === 'single' && this.shootIntervalTimerList.length > 0) {
+                    Laya.stage.event(EventType.START_ATTACK, {
+                        other: this.shootIntervalTimerList[0].other,
+                        self: this.shootIntervalTimerList[0].self
+                    });
+                    this.shootIntervalTimerList[0].timer = setInterval(() => {
+                        Laya.stage.event(EventType.START_ATTACK, {
+                            other: this.shootIntervalTimerList[0].other,
+                            self: this.shootIntervalTimerList[0].self
+                        });
+                    }, 500);
+                }
+            }
         }
         setPosition(x, y) {
-            console.log(this.spriteSelf);
-            const bg = this.spriteSelf.getChildByName('background');
-            this.spriteSelf.x = x - bg.width / 2;
-            this.spriteSelf.y = y - bg.height / 2;
+            this.spriteSelf.x = x - this.spriteSelf.width / 2;
+            this.spriteSelf.y = y - this.spriteSelf.height / 2;
+            this.setCircleColliderPos();
+        }
+        setCircleColliderPos() {
+            this.circleCollider.x = this.spriteSelf.width / 2 - this.circleCollider.radius;
+            this.circleCollider.y = this.spriteSelf.height / 2 - this.circleCollider.radius;
+        }
+        setShortRange(shotRange) {
+            this.circleCollider.radius = this.shotRange = shotRange;
+            this.setCircleColliderPos();
+        }
+        setWH(width, height) {
+            this.spriteSelf.width = width;
+            this.spriteSelf.height = height;
+            this.setCircleColliderPos();
+            this.spriteSelf.pivot(width / 2, height / 2);
         }
     }
 
@@ -484,9 +791,11 @@
         constructor() { }
         static init() {
             var reg = Laya.ClassUtils.regClass;
+            reg("level/level1.ts", level1);
             reg("level2.ts", level2);
             reg("cui/HomeView.ts", HomeView);
             reg("start.ts", start);
+            reg("prefab/bullet.ts", bullet);
             reg("prefab/enemy.ts", Enemy);
             reg("prefab/turret.ts", turret);
         }
@@ -497,11 +806,11 @@
     GameConfig.screenMode = "none";
     GameConfig.alignV = "top";
     GameConfig.alignH = "left";
-    GameConfig.startScene = "level2.scene";
+    GameConfig.startScene = "level1.scene";
     GameConfig.sceneRoot = "";
     GameConfig.debug = true;
     GameConfig.stat = false;
-    GameConfig.physicsDebug = false;
+    GameConfig.physicsDebug = true;
     GameConfig.exportSceneToJson = true;
     GameConfig.init();
 

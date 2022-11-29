@@ -2,12 +2,12 @@
     "x":0,
     "type":"Sprite",
     "selectedBox":2,
-    "selecteID":13,
-    "searchKey":"Sprite,enemySprite",
-    "props":{"y":0,"x":0,"sceneWidth":40,"sceneHeight":40,"sceneColor":"#000000","presetID":1,"preset":"laya/pages/prefab/enemy.prefab","name":"enemySprite","isPresetRoot":true},
+    "selecteID":5,
+    "searchKey":"Sprite,bulletSprite",
+    "props":{"y":0,"x":0,"sceneWidth":40,"sceneHeight":40,"sceneColor":"#000000","presetID":1,"preset":"laya/pages/prefab/bullet.prefab","name":"bulletSprite","isPresetRoot":true},
     "nodeParent":-1,
-    "maxID":14,
-    "label":"enemySprite",
+    "maxID":13,
+    "label":"bulletSprite",
     "isOpen":true,
     "isDirectory":true,
     "isAniNode":true,
@@ -16,30 +16,13 @@
     "child":[
         {
             "x":15,
-            "type":"Script",
-            "switchAble":true,
-            "source":"src/prefab/enemy.ts",
-            "searchKey":"Script,enemy",
-            "removeAble":true,
-            "props":{"presetID":3,"preset":"laya/pages/prefab/enemy.prefab","enabled":true},
-            "nodeParent":2,
-            "label":"enemy",
-            "isDirectory":false,
-            "isAniNode":true,
-            "hasChild":false,
-            "compId":5,
-            "child":[
-                ]
-        },
-        {
-            "x":15,
             "type":"CircleCollider",
             "switchAble":true,
             "searchKey":"CircleCollider",
             "removeAble":true,
-            "props":{"y":0,"x":0,"radius":5,"presetID":4,"preset":"laya/pages/prefab/enemy.prefab","isSensor":true},
+            "props":{"y":0,"x":0,"radius":5,"presetID":4,"preset":"laya/pages/prefab/bullet.prefab","isSensor":true},
             "nodeParent":2,
-            "label":"CircleCollider(enemy)",
+            "label":"CircleCollider(bullet)",
             "isDirectory":false,
             "isAniNode":true,
             "hasChild":false,
@@ -53,13 +36,31 @@
             "switchAble":true,
             "searchKey":"RigidBody",
             "removeAble":true,
-            "props":{"type":"kinematic","presetID":5,"preset":"laya/pages/prefab/enemy.prefab","mask":3,"label":"enemy","group":0,"enabled":true,"category":4,"bullet":true},
+            "props":{"type":"kinematic","presetID":5,"preset":"laya/pages/prefab/bullet.prefab","mask":12,"label":"bullet","group":0,"enabled":true,"category":2,"bullet":true},
             "nodeParent":2,
-            "label":"RigidBody(enemy)",
+            "label":"RigidBody(bullet)",
             "isDirectory":false,
+            "isClose":false,
             "isAniNode":true,
             "hasChild":false,
             "compId":9,
+            "child":[
+                ]
+        },
+        {
+            "x":15,
+            "type":"Script",
+            "switchAble":true,
+            "source":"src/prefab/bullet.ts",
+            "searchKey":"Script,bullet",
+            "removeAble":true,
+            "props":{"presetID":6,"preset":"laya/pages/prefab/bullet.prefab"},
+            "nodeParent":2,
+            "label":"bullet",
+            "isDirectory":false,
+            "isAniNode":true,
+            "hasChild":false,
+            "compId":12,
             "child":[
                 ]
         }],
@@ -71,6 +72,5 @@
             "id":1,
             "frameRate":24,
             "action":0
-        }],
-    "$HIDDEN":false
+        }]
 }

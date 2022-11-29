@@ -18,8 +18,8 @@ export default class PrefabFactory{
         const loader = new Loader();
         const path = `prefab/${prefabName}.json`;
         const prefab:Laya.Prefab = await loader.loadRes(path) as any;
-        console.log(prefab);
-        console.log(prefabName);
+        // console.log(prefab);
+        // console.log(prefabName);
         const prefabSprite:Laya.Sprite = Laya.Pool.getItemByCreateFun(prefabName, prefab.create, prefab);
         return prefabSprite;
     }
